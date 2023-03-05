@@ -1,6 +1,7 @@
 use adler32_checksum_rs::adler32::{Adler32, Adler32Builder};
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::prelude::*;
+use std::time::Duration;
 
 fn generate_random_hash() -> Vec<u8> {
     let mut rng = rand::thread_rng();
@@ -15,8 +16,8 @@ fn adler32_checksum_parallel(init: [u8; 8], data: Vec<Vec<u8>>) {
 
 fn adler32_checksum_blocking(init: [u8; 8], data: Vec<Vec<u8>>) {
     let adler = Adler32::new(init);
-    data.iter().for_each(|h| {
-        adler.adler32_checksum(h.clone());
+    data.iter().for_each(|hash| {
+        adler.adler32_checksum(hash);
     })
 }
 
@@ -27,19 +28,25 @@ fn adler32_checksum_parallel_benchmark(c: &mut Criterion) {
     let data_random: Vec<Vec<u8>> = (0..=count).map(|_| generate_random_hash()).collect();
     let data: Vec<Vec<u8>> = (0..=count).map(|x| [x as u8; 32].to_vec()).collect();
 
-    c.bench_function("Adler32 checksum parallel randomized", |b| {
+    let mut group = c.benchmark_group("Adler32");
+
+    group.bench_function("Checksum parallel randomized", |b| {
         b.iter(|| adler32_checksum_parallel(init, data_random.clone()))
     });
-    c.bench_function("Adler32 checksum parallel", |b| {
+    group.bench_function("Checksum parallel", |b| {
         b.iter(|| adler32_checksum_parallel(init, data.clone()))
     });
-    c.bench_function("Adler32 checksum blocking randomized", |b| {
+    group.bench_function("Checksum blocking randomized", |b| {
         b.iter(|| adler32_checksum_blocking(init, data_random.clone()))
     });
-    c.bench_function("Adler32 checksum blocking", |b| {
+    group.bench_function("Checksum blocking", |b| {
         b.iter(|| adler32_checksum_blocking(init, data.clone()))
     });
 }
 
-criterion_group!(benches, adler32_checksum_parallel_benchmark);
+criterion_group! {
+    name = benches;
+    config = Criterion::default().sample_size(1_000).measurement_time(Duration::from_secs(60));
+    targets = adler32_checksum_parallel_benchmark
+}
 criterion_main!(benches);

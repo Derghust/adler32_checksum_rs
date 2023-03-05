@@ -4,7 +4,6 @@
 //!
 //! [More information about Adler-32](https://en.wikipedia.org/wiki/Adler-32)
 
-use crate::errors::RError;
 use crate::primitives::Result;
 use byteorder::{BigEndian, ReadBytesExt};
 use rayon::prelude::*;
@@ -55,11 +54,7 @@ impl Adler32 {
     ///
     /// Generate checksum from hash with developer defined left and right initialized values.
     #[inline(always)]
-    pub fn adler32_checksum(self, hash: Vec<u8>) -> Result<Vec<u8>> {
-        if self.initial_value.len() != 8 {
-            return Err(Box::new(RError::new("Ops")));
-        }
-
+    pub fn adler32_checksum(self, hash: &[u8]) -> Result<Vec<u8>> {
         let mut split = self.initial_value.split_at(4);
         let left_init = split.0.read_u32::<BigEndian>().unwrap();
         let right_init = split.1.read_u32::<BigEndian>().unwrap();
@@ -98,7 +93,7 @@ impl Adler32Builder {
     pub fn finalize(self) -> Vec<Adler32Result> {
         self.values
             .par_iter()
-            .map(|i| Adler32Result::new(i.clone(), self.checksum.adler32_checksum(i.clone())))
+            .map(|i| Adler32Result::new(i.clone(), self.checksum.adler32_checksum(i)))
             .filter(|x| x.is_ok())
             .collect()
     }
@@ -112,7 +107,7 @@ mod tests {
     #[test]
     fn validate_adler32_checksum() {
         let checksum = Adler32::new([0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00])
-            .adler32_checksum("Wikipedia".as_bytes().to_vec());
+            .adler32_checksum(&"Wikipedia".as_bytes());
 
         assert!(checksum.is_ok());
         assert_eq!(300286872_u32.to_be_bytes().to_vec(), checksum.unwrap())
