@@ -2,7 +2,7 @@
 name = "adler32_checksum_rs"
 version = "0.1.0"
 edition = "2021"
-license-file = "LICENSE.md"
+license-file = "LICENSE"
 readme = "README.md"
 keywords = ["hash", "checksum", "api"]
 description = "Adler32 checksum"
